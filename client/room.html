@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+
+<body>
+  <div>
+    <input type="text" name="" id="roomname" value="hoge" />
+    <button id="connectBtn">Connect</button>
+  </div>
+  <div>
+    <input type="text" name="" id="message" value="foo" />
+    <button id="datagramBtn" disabled>Send by Datagram</button>
+    <button id="streamBtn" disabled>Send by Stream</button>
+  </div>
+  <script src="./room.js"></script>
+  <script>
+    document.getElementById('connectBtn').addEventListener('click', async () => {
+      const roomname = document.getElementById('roomname').value;
+      const room = new QuicTransportRoom(roomname);
+      await room.connect();
+
+      document.getElementById('connectBtn').disabled = true;
+      document.getElementById('datagramBtn').disabled = false;
+      document.getElementById('streamBtn').disabled = false;
+
+      const messageElem = document.getElementById('message');
+      document.getElementById('datagramBtn').addEventListener('click', () => {
+        const message = messageElem.value;
+        room.send(message, true);
+      });
+      document.getElementById('streamBtn').addEventListener('click', () => {
+        const message = messageElem.value;
+        room.send(message);
+      });
+    });
+  </script>
+</body>
+
+</html>
