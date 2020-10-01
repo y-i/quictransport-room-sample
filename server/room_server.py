@@ -127,19 +127,19 @@ class RoomHandler:
         # Datagram
         if isinstance(event, DatagramFrameReceived):
             payload = event.data
-            if len(payload) > 0:
-                self.buffers[self.stream_id] += payload
+            if len(payload) == 0:
+                for connection, protocol, _ in self.room:
+                    if connection == self.connection:
+                        continue
+
+                    # connection.send_datagram_frame(payload)
+                    connection.send_datagram_frame(self.buffers[self.stream_id])
+                    self.buffers[self.stream_id] = b''
+                    # To send datagram immediately
+                    protocol.transmit()
                 return
 
-            for connection, protocol, _ in self.room:
-                if connection == self.connection:
-                    continue
-
-                # connection.send_datagram_frame(payload)
-                connection.send_datagram_frame(self.buffers[self.stream_id])
-                self.buffers[self.stream_id] = b''
-                # To send datagram immediately
-                protocol.transmit()
+            self.buffers[self.stream_id] += payload
 
         # Stream
         if isinstance(event, StreamDataReceived):
@@ -148,20 +148,19 @@ class RoomHandler:
                 return
 
             payload = event.data
-            if len(payload) > 0:
-                self.buffers[self.stream_id] += payload
-                self.connection.send_stream_data(self.stream_id, ''.encode('ascii'))
+            if len(payload) == 0:
+                for connection, protocol, stream_id in self.room:
+                    if connection == self.connection:
+                        continue
+
+                    # connection.send_stream_data(stream_id, payload)
+                    connection.send_stream_data(stream_id, self.buffers[self.stream_id])
+                    self.buffers[self.stream_id] = b''
+                    # To send stream immediately
+                    protocol.transmit()
                 return
 
-            for connection, protocol, stream_id in self.room:
-                if connection == self.connection:
-                    continue
-
-                # connection.send_stream_data(stream_id, payload)
-                connection.send_stream_data(stream_id, self.buffers[self.stream_id])
-                self.buffers[self.stream_id] = b''
-                # To send stream immediately
-                protocol.transmit()
+            self.buffers[self.stream_id] += payload
 
 
         # Streams in QUIC can be closed in two ways: normal (FIN) and abnormal
