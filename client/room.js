@@ -87,10 +87,12 @@ class QuicTransportRoom {
   }
 
   async sendByDatagram(data) {
-    return this.datagramWriter.write(this.encoder.encode(data));
+    await this.datagramWriter.write(this.encoder.encode(data));
+    await this.datagramWriter.write(this.encoder.encode(''));
   }
   async sendByStream(data) {
-    return this.streamWriter.write(this.encoder.encode(data));
+    await this.streamWriter.write(this.encoder.encode(data));
+    await this.streamWriter.write(this.encoder.encode(''));
   }
   /**
    *

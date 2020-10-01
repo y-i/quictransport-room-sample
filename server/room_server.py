@@ -119,6 +119,7 @@ class RoomHandler:
         self.protocol = protocol
         self.stream_id = self.connection.get_next_available_stream_id(is_unidirectional=True) # server=>client用
         self.room = room
+        self.buffers: DefaultDict[int, bytes] = defaultdict(bytes)
         room.add((connection, protocol, self.stream_id))
 
     def quic_event_received(self, event: QuicEvent) -> None:
@@ -126,11 +127,17 @@ class RoomHandler:
         # Datagram
         if isinstance(event, DatagramFrameReceived):
             payload = event.data
+            if len(payload) > 0:
+                self.buffers[self.stream_id] += payload
+                return
+
             for connection, protocol, _ in self.room:
                 if connection == self.connection:
                     continue
 
-                connection.send_datagram_frame(payload)
+                # connection.send_datagram_frame(payload)
+                connection.send_datagram_frame(self.buffers[self.stream_id])
+                self.buffers[self.stream_id] = b''
                 # To send datagram immediately
                 protocol.transmit()
 
@@ -141,11 +148,18 @@ class RoomHandler:
                 return
 
             payload = event.data
+            if len(payload) > 0:
+                self.buffers[self.stream_id] += payload
+                self.connection.send_stream_data(self.stream_id, ''.encode('ascii'))
+                return
+
             for connection, protocol, stream_id in self.room:
                 if connection == self.connection:
                     continue
 
-                connection.send_stream_data(stream_id, payload)
+                # connection.send_stream_data(stream_id, payload)
+                connection.send_stream_data(stream_id, self.buffers[self.stream_id])
+                self.buffers[self.stream_id] = b''
                 # To send stream immediately
                 protocol.transmit()
 
@@ -155,6 +169,7 @@ class RoomHandler:
         # below handles the resets.
         if isinstance(event, StreamReset):
             try:
+                del self.buffers[self.stream_id]
                 self.room.remove((self.connection, self.protocol))
             except KeyError:
                 pass
