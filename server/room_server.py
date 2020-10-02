@@ -124,6 +124,7 @@ class RoomHandler:
 
     def quic_event_received(self, event: QuicEvent) -> None:
         print(event)
+
         # Datagram
         if isinstance(event, DatagramFrameReceived):
             payload = event.data
@@ -134,9 +135,9 @@ class RoomHandler:
 
                     # connection.send_datagram_frame(payload)
                     connection.send_datagram_frame(self.buffers[self.stream_id])
-                    self.buffers[self.stream_id] = b''
                     # To send datagram immediately
                     protocol.transmit()
+                self.buffers[self.stream_id] = b''
                 return
 
             self.buffers[self.stream_id] += payload
@@ -155,9 +156,9 @@ class RoomHandler:
 
                     # connection.send_stream_data(stream_id, payload)
                     connection.send_stream_data(stream_id, self.buffers[self.stream_id])
-                    self.buffers[self.stream_id] = b''
                     # To send stream immediately
                     protocol.transmit()
+                self.buffers[self.stream_id] = b''
                 return
 
             self.buffers[self.stream_id] += payload
