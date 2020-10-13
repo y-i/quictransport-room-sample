@@ -9,7 +9,7 @@
 
 <body>
   <div>
-    <input type="text" name="" id="roomname" value="hoge" />
+    <input type="text" name="" id="roomname" value="hoge2" />
     <button id="connectBtn">Connect</button>
   </div>
   <div>
@@ -22,10 +22,11 @@
     document.getElementById('connectBtn').addEventListener('click', async () => {
       const roomname = document.getElementById('roomname').value;
       const room = new QuicTransportRoom(roomname);
+      // const room = new QuicTransportRoom(roomname, 'quic-transport://localhost:4433/', console.error);
       await room.connect();
 
       document.getElementById('connectBtn').disabled = true;
-      document.getElementById('datagramBtn').disabled = false;
+      // document.getElementById('datagramBtn').disabled = false;
       document.getElementById('streamBtn').disabled = false;
 
       const messageElem = document.getElementById('message');
