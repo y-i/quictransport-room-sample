@@ -19,6 +19,7 @@ class QuicTransportRoom {
       stream: new Uint8Array(),
     };
   }
+
   /**
    * Connect to QuicTransportServer
    */
@@ -56,6 +57,10 @@ class QuicTransportRoom {
     this.readDatagrams();
     this.readStreams();
   }
+
+  /**
+   * @private
+   */
   async readStreams() {
     const reader = this.transport.receiveStreams().getReader();
     try {
@@ -77,12 +82,22 @@ class QuicTransportRoom {
       reader.releaseLock();
     }
   }
+
+  /**
+   * @private
+   */
   async readDatagrams() {
     const decoder = new TextDecoder('utf-8');
     const reader = this.transport.receiveDatagrams().getReader();
     this.readFromReader(reader, data => decoder.decode(data), 'datagram');
   }
 
+  /**
+   * @private
+   * @param {ReadableStreamDefaultReader} reader
+   * @param {TextDecoder} decoder
+   * @param {String} type
+   */
   async readFromReader(reader, decoder, type) {
     try {
       while (true) {
@@ -130,6 +145,7 @@ class QuicTransportRoom {
     const buffer = this.pack(this.encoder.encode(data));
     return this.datagramWriter.write(buffer);
   }
+
   /**
    * Send data by using stream
    * @param {String} data - Data to send
@@ -138,6 +154,7 @@ class QuicTransportRoom {
     const buffer = this.pack(this.encoder.encode(data));
     return this.streamWriter.write(buffer);
   }
+
   /**
    * Send data
    * @param {String} data - Data to send
@@ -150,14 +167,17 @@ class QuicTransportRoom {
 
   /**
    * Add length field to ArrayBuffer
+   * @private
    * @param {Uint8Array} ary - Length of ary must be less than 65536.
    */
   pack(ary) {
     const len = ary.byteLength;
     return Uint8Array.from([0,0,0,0,0,0,0,0,0,0,0,0,0,0,Math.floor(len/256),len%256,...ary]);
   }
+
   /**
    * Get length and data from ArrayBuffer
+   * @private
    * @param {Uint8Array} ary - Binary data that contains its length
    */
   unpack(ary) {
