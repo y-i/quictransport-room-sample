@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="../client/room.js"></script>
+    <script src="./media.js" defer></script>
+    <!-- <link rel="stylesheet" href="client.css"> -->
+    <style>
+      video {
+        border: 1px solid black;
+      }
+    </style>
+</head>
+
+<body>
+    <div id="top">
+        <div id="tool">
+            <div class="input-line">
+                <!-- <label for="url">URL:</label> -->
+                <!-- <input type="text" name="url" id="url" value="quic-transport://localhost:4433/p2p"> -->
+                <input type="button" id="connect" value="Connect" onclick="connect()">
+            </div>
+            <hr>
+            <button id="offer" onclick="offer()">Offer</button>
+            <div>
+                <video id="localStream" autoplay muted></video>
+            </div>
+            <hr>
+            <div>
+                <video id="remoteStream" autoplay></video>
+            </div>
+        </div>
+    </div>
+
+</body>
+
+</html>

@@ -113,48 +113,87 @@ def is_client_initiated_stream(stream_id):
 def is_bidirectional_stream(stream_id):
     return stream_id % 4 < 2
 
+def pack(data: bytes, length: int) -> bytes:
+    header = b'\x00' * 14 + bytes([length//256, length%256])
+    return header + data
+
+def unpack(data: bytes) -> Tuple[int, bytes]:
+    len_field, value = data[0:16], data[16:]
+    length = int.from_bytes(len_field[14:16],byteorder='big')
+    return (length, value)
+
 class RoomHandler:
     def __init__(self, connection: QuicConnection, protocol: QuicConnectionProtocol, room: Set[Tuple[QuicConnection, QuicConnectionProtocol, int]]) -> None:
         self.connection = connection
         self.protocol = protocol
         self.stream_id = self.connection.get_next_available_stream_id(is_unidirectional=True) # server=>client用
         self.room = room
+        self.buffers: DefaultDict[int, bytes] = defaultdict(bytes)
+        self.lengths: DefaultDict[int, int] = defaultdict(int)
         room.add((connection, protocol, self.stream_id))
 
     def quic_event_received(self, event: QuicEvent) -> None:
-        print(event)
         # Datagram
         if isinstance(event, DatagramFrameReceived):
-            payload = event.data
-            for connection, protocol, _ in self.room:
-                if connection == self.connection:
-                    continue
+            event.stream_id = -1
 
-                connection.send_datagram_frame(payload)
-                # To send datagram immediately
-                protocol.transmit()
+            payload = event.data
+            # datagramはMTU以上の長さを送れないので分割が発生しないので実装を省く
+
+            if len(payload) == 0:
+                for connection, protocol, _ in self.room:
+                    if connection == self.connection:
+                        continue
+
+                    # connection.send_datagram_frame(payload)
+                    connection.send_datagram_frame(self.buffers[event.stream_id])
+                    # To send datagram immediately
+                    protocol.transmit()
+                self.buffers[event.stream_id] = b''
+                return
+
+            self.buffers[event.stream_id] += payload
 
         # Stream
         if isinstance(event, StreamDataReceived):
+            # Don't use bidirectional stream
             if not is_client_unidi_stream(event.stream_id):
                 self.connection.reset_stream(event.stream_id, 0)
                 return
 
             payload = event.data
-            for connection, protocol, stream_id in self.room:
-                if connection == self.connection:
-                    continue
 
-                connection.send_stream_data(stream_id, payload)
-                # To send stream immediately
-                protocol.transmit()
+            if self.lengths[event.stream_id] == 0:
+                length, payload = unpack(payload)
+                self.lengths[event.stream_id] = length
+            self.buffers[event.stream_id] += payload
 
+            if len(self.buffers[event.stream_id]) > self.lengths[event.stream_id]:
+                print('Data is too long', len(self.buffers[event.stream_id]), self.lengths[event.stream_id])
+                del self.lengths[event.stream_id]
+                del self.buffers[event.stream_id]
+                return
+
+            if len(self.buffers[event.stream_id]) == self.lengths[event.stream_id]:
+                send_data = pack(self.buffers[event.stream_id], self.lengths[event.stream_id])
+                print(len(send_data))
+                for connection, protocol, stream_id in self.room:
+                    if connection == self.connection:
+                        continue
+
+                    # connection.send_stream_data(stream_id, payload)
+                    connection.send_stream_data(stream_id, send_data)
+                    # To send stream immediately
+                    protocol.transmit()
+                del self.lengths[event.stream_id]
+                del self.buffers[event.stream_id]
 
         # Streams in QUIC can be closed in two ways: normal (FIN) and abnormal
         # (resets).  FIN is handled by event.end_stream logic above; the code
         # below handles the resets.
         if isinstance(event, StreamReset):
             try:
+                del self.buffers[event.stream_id]
                 self.room.remove((self.connection, self.protocol))
             except KeyError:
                 pass
