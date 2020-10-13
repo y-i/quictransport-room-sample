@@ -126,25 +126,26 @@ class QuicTransportRoom {
    * Send data by using datagram
    * @param {String} data - Data to send
    */
-  async sendByDatagram(data) {
-    await this.datagramWriter.write(this.pack(this.encoder.encode(data)));
+  sendByDatagram(data) {
+    const buffer = this.pack(this.encoder.encode(data));
+    return this.datagramWriter.write(buffer);
   }
   /**
    * Send data by using stream
    * @param {String} data - Data to send
    */
-  async sendByStream(data) {
+  sendByStream(data) {
     const buffer = this.pack(this.encoder.encode(data));
-    await this.streamWriter.write(buffer);
+    return this.streamWriter.write(buffer);
   }
   /**
    * Send data
    * @param {String} data - Data to send
    * @param {Boolean} isDatagram - The data is datagram if true, else stream
    */
-  async send(data, isDatagram = false) {
-    if (isDatagram) this.sendByDatagram(data);
-    else this.sendByStream(data);
+  send(data, isDatagram = false) {
+    if (isDatagram) return this.sendByDatagram(data);
+    else return this.sendByStream(data);
   }
 
   /**
