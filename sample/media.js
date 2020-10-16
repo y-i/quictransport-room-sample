@@ -20,7 +20,7 @@ const answer = async () => {
 };
 
 const connect = async () => {
-  room = new QuicTransportRoom('media', 'quic-transport://localhost:4433/', async (data) => {
+  room = new WebTransportRoom('media', 'quic-transport://localhost:4433/', async (data) => {
     const {type, message} = JSON.parse(data);
     if (type === 'offer') {
       await pc.setRemoteDescription(message);
@@ -47,14 +47,14 @@ const connect = async () => {
     }
   };
   pc.onicecandidate = async evnet => {
-    if (event.candidate) {
-        console.log(event.candidate);
-        await room.send(JSON.stringify({
-          type: 'candidate',
-          message: event.candidate,
-        }))
-        return;
-    }
+    // if (event.candidate) {
+    //     console.log(event.candidate);
+    //     await room.send(JSON.stringify({
+    //       type: 'candidate',
+    //       message: event.candidate,
+    //     }))
+    //     return;
+    // }
     // console.log(evnet);
   }
   pc.ontrack = async event => {

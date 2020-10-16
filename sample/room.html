@@ -21,7 +21,7 @@
   <script>
     document.getElementById('connectBtn').addEventListener('click', async () => {
       const roomname = document.getElementById('roomname').value;
-      const room = new QuicTransportRoom(roomname);
+      const room = new WebTransportRoom(roomname);
       // const room = new QuicTransportRoom(roomname, 'quic-transport://localhost:4433/', console.error);
       await room.connect();
 
