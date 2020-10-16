@@ -1,4 +1,4 @@
-class QuicTransportRoom {
+class WebTransportRoom {
   /**
    *
    * @param {String} roomname
@@ -24,13 +24,13 @@ class QuicTransportRoom {
    * Connect to QuicTransportServer
    */
   async connect() {
-    if (window.QuicTransport === undefined) {
-      throw new Error('QuicTransport is unsupported');
+    if (window.WebTransport === undefined) {
+      throw new Error('WebTransport is unsupported');
     }
 
     try {
       const URL = `${this.BaseURL}${this.roomname}`;
-      this.transport = new QuicTransport(URL);
+      this.transport = new WebTransport(URL);
       console.log('Initiating connection...');
     } catch (err) {
       throw new Error('Failed to create connection object. ' + err.message);
@@ -52,8 +52,8 @@ class QuicTransportRoom {
       });
 
     this.encoder = new TextEncoder('utf-8');
-    this.datagramWriter = this.transport.sendDatagrams().getWriter();
-    this.streamWriter = (await this.transport.createSendStream()).writable.getWriter();
+    this.datagramWriter = this.transport.datagramWritable.getWriter();
+    this.streamWriter = (await this.transport.createUnidirectionalStream()).writable.getWriter();
     this.readDatagrams();
     this.readStreams();
   }
@@ -62,7 +62,7 @@ class QuicTransportRoom {
    * @private
    */
   async readStreams() {
-    const reader = this.transport.receiveStreams().getReader();
+    const reader = this.transport.incomingUnidirectionalStreams.getReader();
     try {
       while (true) {
         const { done, value } = await reader.read();
@@ -88,7 +88,7 @@ class QuicTransportRoom {
    */
   async readDatagrams() {
     const decoder = new TextDecoder('utf-8');
-    const reader = this.transport.receiveDatagrams().getReader();
+    const reader = this.transport.datagramReadable.getReader();
     this.readFromReader(reader, data => decoder.decode(data), 'datagram');
   }
 
