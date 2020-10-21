@@ -9,6 +9,7 @@ class WebTransportRoom {
     this.roomname = roomname;
     this.BaseURL = BaseURL;
     this.cb = cb;
+    this.maxDatagramLength = 1200;
 
     this.length = {
       datagram: 0,
@@ -141,18 +142,20 @@ class WebTransportRoom {
    * Send data by using datagram
    * @param {String} data - Data to send
    */
-  sendByDatagram(data) {
+  async sendByDatagram(data) {
     const buffer = this.pack(this.encoder.encode(data));
-    return this.datagramWriter.write(buffer);
+    for (let left = 0; left < buffer.byteLength; left += this.maxDatagramLength) {
+      await this.datagramWriter.write(buffer.slice(left, left + this.maxDatagramLength));
+    }
   }
 
   /**
    * Send data by using stream
    * @param {String} data - Data to send
    */
-  sendByStream(data) {
+  async sendByStream(data) {
     const buffer = this.pack(this.encoder.encode(data));
-    return this.streamWriter.write(buffer);
+    await this.streamWriter.write(buffer);
   }
 
   /**
@@ -160,9 +163,9 @@ class WebTransportRoom {
    * @param {String} data - Data to send
    * @param {Boolean} isDatagram - The data is datagram if true, else stream
    */
-  send(data, isDatagram = false) {
-    if (isDatagram) return this.sendByDatagram(data);
-    else return this.sendByStream(data);
+  async send(data, isDatagram = false) {
+    if (isDatagram) await this.sendByDatagram(data);
+    else await this.sendByStream(data);
   }
 
   /**
