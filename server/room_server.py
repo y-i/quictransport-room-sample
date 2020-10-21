@@ -138,21 +138,16 @@ class RoomHandler:
             event.stream_id = -1
 
             payload = event.data
-            # datagramはMTU以上の長さを送れないので分割が発生しないので実装を省く
+            # datagramはMTU以上の長さを送れないので分割が発生しないので分割の実装を省く
+            for connection, protocol, _ in self.room:
+                if connection == self.connection:
+                    continue
 
-            if len(payload) == 0:
-                for connection, protocol, _ in self.room:
-                    if connection == self.connection:
-                        continue
+                # connection.send_datagram_frame(payload)
+                connection.send_datagram_frame(payload)
+                # To send datagram immediately
+                protocol.transmit()
 
-                    # connection.send_datagram_frame(payload)
-                    connection.send_datagram_frame(self.buffers[event.stream_id])
-                    # To send datagram immediately
-                    protocol.transmit()
-                self.buffers[event.stream_id] = b''
-                return
-
-            self.buffers[event.stream_id] += payload
 
         # Stream
         if isinstance(event, StreamDataReceived):
